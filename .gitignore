@@ -40,8 +40,10 @@ desktop.ini
 *.local.*
 *.local.md
 *.local.json
-docs/local/
 scripts/local/
+
+# docs/local/ は追跡する（house 標準）。設計ノートは公開して困るものではなく、
+# 後日 grep できるほうが実務上の効率が高い。混入は secrets-scan が拾う。
 
 # === 認証情報・secrets・鍵（public へ絶対に出さない） ===
 *.pem

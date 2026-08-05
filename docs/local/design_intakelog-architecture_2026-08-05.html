@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<!--docsweep-meta
+type: design
+status: planned
+tags: [design, intakelog, supply-chain]
+owner: ishizakahiroshi
+related: []
+last_reviewed: 2026-08-05
+docsweep_policy: archive_with_release
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>intakelog システム構成と導入動線 — 2026-08-05</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f7f3ea; --ink:#241f1a; --ink-soft:#837a6c; --line:rgba(36,31,26,0.12);
+    --accent:#ff7a3d; --card:#fffdf8; --ok:#2e7d4f; --warn:#b8860b; --bad:#b3261e;
+    --display:'Baloo 2','Zen Maru Gothic',system-ui,cursive;
+    --body:'Zen Maru Gothic',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--body);color:var(--ink);background:var(--bg);line-height:1.7;
+       text-wrap:pretty;font-size:16px}
+  .wrap{max-width:min(1080px,92vw);margin:0 auto;padding:48px 0 80px}
+  h1{font-family:var(--display);font-weight:800;font-size:2rem;margin:0 0 12px;letter-spacing:-0.01em}
+  h2{font-family:var(--display);font-weight:700;font-size:1.4rem;margin:48px 0 16px;
+     padding-bottom:8px;border-bottom:2px solid var(--ink)}
+  h3{font-family:var(--display);font-weight:700;font-size:1.1rem;margin:28px 0 10px}
+  p,li{font-size:1rem}
+  a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+  .card{background:var(--card);border:2px solid var(--ink);border-radius:18px;
+        padding:22px 24px;box-shadow:4px 5px 0 var(--line);margin:16px 0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;background:#fff;
+        border:2px solid var(--ink);border-radius:12px;overflow:hidden}
+  th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);font-size:0.94rem}
+  th{background:#fffdf8;font-family:var(--display);font-weight:700}
+  tr:last-child td{border-bottom:0}
+  .tag{display:inline-block;padding:2px 10px;border-radius:999px;
+       font-family:var(--display);font-weight:700;font-size:0.78rem;
+       border:2px solid var(--ink);background:#fff;color:var(--ink)}
+  .tag-ok{background:var(--ok);color:#fff} .tag-warn{background:var(--warn);color:#fff}
+  .tag-bad{background:var(--bad);color:#fff} .tag-accent{background:var(--accent);color:#fff}
+  .system-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;
+                border-radius:999px;border:2px solid var(--ink);background:var(--card);
+                font-family:var(--display);font-weight:700;font-size:0.86rem}
+  .system-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .meta{color:var(--ink-soft);font-size:0.88rem}
+  code{font-family:ui-monospace,Consolas,monospace;font-size:0.88em;
+       background:rgba(36,31,26,0.06);padding:1px 6px;border-radius:5px}
+  pre{background:#fff;border:2px solid var(--ink);border-radius:12px;padding:16px 18px;
+      overflow-x:auto;font-family:ui-monospace,Consolas,monospace;font-size:0.84rem;line-height:1.6}
+  pre code{background:none;padding:0}
+  .lead{font-size:1.06rem}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  .steps>li{counter-increment:s;position:relative;padding:14px 0 14px 52px;
+            border-bottom:1px solid var(--line)}
+  .steps>li:last-child{border-bottom:0}
+  .steps>li::before{content:counter(s);position:absolute;left:0;top:14px;
+    width:34px;height:34px;border-radius:999px;border:2px solid var(--ink);
+    background:var(--card);font-family:var(--display);font-weight:700;
+    display:flex;align-items:center;justify-content:center}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:760px){ .two{grid-template-columns:1fr} }
+  .figwrap{background:#fff;border:2px solid var(--ink);border-radius:18px;padding:14px;margin:16px 0;overflow-x:auto}
+  .figwrap svg{display:block;width:100%;height:auto;min-width:720px}
+  figcaption{color:var(--ink-soft);font-size:0.86rem;margin-top:8px}
+  .qbar{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  button{font-family:var(--display);font-weight:700;font-size:0.95rem;padding:10px 20px;
+         border-radius:999px;border:2px solid var(--ink);background:var(--accent);color:#fff;
+         box-shadow:4px 4px 0 var(--ink);cursor:pointer}
+  button.ghost{background:#fff;color:var(--ink)}
+  fieldset{border:2px solid var(--ink);border-radius:14px;padding:16px 18px;margin:16px 0;background:#fff}
+  legend{font-family:var(--display);font-weight:700;padding:0 8px}
+  label{display:block;padding:3px 0;font-size:0.95rem}
+  textarea{width:100%;font-family:var(--body);font-size:0.95rem;padding:8px 10px;
+           border:2px solid var(--ink);border-radius:10px;background:#fff;color:var(--ink)}
+  #out{white-space:pre-wrap;background:#fff;border:2px solid var(--ink);border-radius:12px;
+       padding:14px 16px;margin-top:14px;font-family:ui-monospace,Consolas,monospace;font-size:0.84rem}
+  @media print{ body{background:#fff} .card{box-shadow:none} .qbar{display:none} button{display:none} }
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="system-badge"><span class="dot"></span> 対象: <b>intakelog</b></div>
+<h1>システム構成と導入動線</h1>
+<p class="meta">2026-08-05 ／ <span class="tag tag-accent">設計</span> <span class="tag">実装前</span> ／ npm 名の予約と公開リポジトリの作成まで完了</p>
+
+<p class="lead">intakelog は「開発マシンに<b>何を・いつ・どこから</b>取り込んだか」を記録する CLI。脆弱性の判定は自分でやらず <code>osv-scanner</code> に任せ、自分は<b>台帳</b>と<b>経路の横断収集</b>と<b>レポート</b>に専念する。この資料は、そのシステム構成・利用者が使い始めるまでの流れ・出力のイメージをまとめたもの。</p>
+
+<h2>1. 何を解決するのか</h2>
+
+<p>lockfile と SBOM が答えられるのは「<b>今</b>何が入っているか」だけ。サプライチェーン事案が起きた日に実際に必要になる情報は、そこには入っていない。</p>
+
+<table>
+  <thead><tr><th>知りたいこと</th><th>lockfile / SBOM</th><th>intakelog</th></tr></thead>
+  <tbody>
+    <tr><td>今どの版が入っているか</td><td>答えられる</td><td>扱わない（重複させない）</td></tr>
+    <tr><td><b>いつ</b>入れたか</td><td>持っていない</td><td>台帳に記録</td></tr>
+    <tr><td><b>どこから</b>来たか（実 URL・ハッシュ）</td><td>レジストリ経由のみ部分的</td><td>台帳に記録</td></tr>
+    <tr><td><b>なぜ</b>入れたか</td><td>持っていない</td><td>台帳に記録</td></tr>
+    <tr><td>npm 以外（OS のパッケージ管理・clone・シェル一行）</td><td>対象外</td><td>台帳に記録</td></tr>
+  </tbody>
+</table>
+
+<div class="card">
+  <h3 style="margin-top:0">きっかけ</h3>
+  <p style="margin-bottom:0">2026 年 8 月 4 日の npm 大規模侵害（keyv / cacheable 系）で、「攻撃開始時刻より後に install したか」を調べる必要が出た。だが手元にその記録は無く、<code>node_modules</code> の更新時刻から<b>推定</b>するしかなかった。推定ではなく事実で答えられる状態を作るのが、このツールの出発点。</p>
+</div>
+
+<h2>2. システム構成</h2>
+
+<div class="figwrap">
+<svg viewBox="0 0 1000 512" role="img" aria-label="intakelog のシステム構成図">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#241f1a"/>
+    </marker>
+  </defs>
+  <g font-family="'Zen Maru Gothic',system-ui,sans-serif" fill="#241f1a">
+
+    <!-- Layer A: 取り込み経路 -->
+    <text x="10" y="12" font-size="12" fill="#837a6c">取り込み経路（すべて監視対象）</text>
+    <g stroke="#241f1a" stroke-width="2" fill="#fffdf8">
+      <rect x="10"  y="20" width="180" height="50" rx="10"/>
+      <rect x="200" y="20" width="180" height="50" rx="10"/>
+      <rect x="390" y="20" width="180" height="50" rx="10"/>
+      <rect x="580" y="20" width="180" height="50" rx="10"/>
+      <rect x="770" y="20" width="180" height="50" rx="10"/>
+    </g>
+    <g font-size="13" text-anchor="middle">
+      <text x="100" y="50">npm / pnpm / bun</text>
+      <text x="290" y="50">scoop / winget</text>
+      <text x="480" y="50">pip / cargo / go</text>
+      <text x="670" y="50">git clone</text>
+      <text x="860" y="50">curl | sh</text>
+    </g>
+
+    <!-- arrows A -> B -->
+    <g stroke="#241f1a" stroke-width="2" marker-end="url(#ar)">
+      <line x1="100" y1="70" x2="100" y2="102"/>
+      <line x1="290" y1="70" x2="290" y2="102"/>
+      <line x1="480" y1="70" x2="480" y2="102"/>
+      <line x1="670" y1="70" x2="670" y2="102"/>
+      <line x1="860" y1="70" x2="860" y2="102"/>
+    </g>
+
+    <!-- Layer B: intakelog 収集 -->
+    <rect x="30" y="104" width="940" height="88" rx="14" stroke="#241f1a" stroke-width="2" fill="#fff" stroke-dasharray="6 4"/>
+    <text x="46" y="124" font-size="12" fill="#837a6c">intakelog（収集）</text>
+    <g stroke="#241f1a" stroke-width="2" fill="#fffdf8">
+      <rect x="60"  y="130" width="420" height="50" rx="10"/>
+      <rect x="520" y="130" width="420" height="50" rx="10"/>
+    </g>
+    <g font-size="13" text-anchor="middle">
+      <text x="270" y="150">即時記録</text>
+      <text x="270" y="169" font-size="11.5" fill="#837a6c">入れたその場で 1 行（理由まで残る）</text>
+      <text x="730" y="150">スナップショット差分</text>
+      <text x="730" y="169" font-size="11.5" fill="#837a6c">手で入れた分を後から補完（理由は残らない）</text>
+    </g>
+
+    <!-- arrows B -> C -->
+    <g stroke="#241f1a" stroke-width="2" marker-end="url(#ar)">
+      <line x1="270" y1="192" x2="420" y2="224"/>
+      <line x1="730" y1="192" x2="580" y2="224"/>
+    </g>
+
+    <!-- Layer C: 台帳 -->
+    <rect x="280" y="226" width="440" height="62" rx="12" stroke="#241f1a" stroke-width="2" fill="#ff7a3d"/>
+    <g text-anchor="middle" fill="#fff">
+      <text x="500" y="252" font-size="15" font-weight="700">取り込み台帳（CSV・append-only）</text>
+      <text x="500" y="272" font-size="11.5">日時 / 名前 / 版 / 入手元 / ハッシュ / 対象 / 理由 / 主体</text>
+    </g>
+
+    <!-- arrow C -> D -->
+    <g stroke="#241f1a" stroke-width="2" marker-end="url(#ar)">
+      <line x1="440" y1="288" x2="330" y2="320"/>
+    </g>
+
+    <!-- Layer D -->
+    <g stroke="#241f1a" stroke-width="2" fill="#fffdf8">
+      <rect x="120" y="322" width="380" height="76" rx="12"/>
+      <rect x="580" y="322" width="360" height="76" rx="12"/>
+    </g>
+    <g font-size="13" text-anchor="middle">
+      <text x="310" y="348">intakelog（レポート生成）</text>
+      <text x="310" y="368" font-size="11.5" fill="#837a6c">台帳 + 照合結果を 1 枚にまとめる</text>
+      <text x="310" y="386" font-size="11.5" fill="#837a6c">未検査は必ず件数を出す</text>
+      <text x="760" y="348">osv-scanner（外部ツール）</text>
+      <text x="760" y="368" font-size="11.5" fill="#837a6c">OSV オフライン DB で照合</text>
+      <text x="760" y="386" font-size="11.5" fill="#837a6c">依存構成を外部へ送らない</text>
+    </g>
+    <g stroke="#241f1a" stroke-width="2" marker-end="url(#ar)" marker-start="url(#ar)">
+      <line x1="500" y1="360" x2="580" y2="360"/>
+    </g>
+    <text x="540" y="352" font-size="11" text-anchor="middle" fill="#837a6c">委譲</text>
+
+    <!-- arrow D -> E -->
+    <g stroke="#241f1a" stroke-width="2" marker-end="url(#ar)">
+      <line x1="310" y1="398" x2="400" y2="430"/>
+    </g>
+
+    <!-- Layer E -->
+    <rect x="250" y="432" width="460" height="56" rx="12" stroke="#241f1a" stroke-width="2" fill="#fffdf8"/>
+    <g text-anchor="middle">
+      <text x="480" y="456" font-size="14" font-weight="700">レポート（単一 HTML・ローカル）</text>
+      <text x="480" y="475" font-size="11.5" fill="#837a6c">サーバー不要・ホスティングしない</text>
+    </g>
+  </g>
+</svg>
+<figcaption>取り込み経路を横断して台帳へ集め、脆弱性の判定だけ osv-scanner に委譲する。出力はローカルの HTML 1 枚で、外部に送信するものは無い。</figcaption>
+</div>
+
+<h3>各要素の役割</h3>
+<table>
+  <thead><tr><th>要素</th><th>役割</th><th>備考</th></tr></thead>
+  <tbody>
+    <tr><td>即時記録</td><td>取り込んだその場で台帳に 1 行足す</td><td>理由（なぜ入れたか）が残るのはこの経路だけ</td></tr>
+    <tr><td>スナップショット差分</td><td>各パッケージ管理の現状を台帳と突き合わせ、差分を追記</td><td>手で入れた分を後から拾う。理由は残らない</td></tr>
+    <tr><td>取り込み台帳</td><td>append-only の CSV。これが唯一の正典</td><td>人が grep でき、差分がそのまま履歴になる</td></tr>
+    <tr><td>osv-scanner</td><td>脆弱性・悪意あるパッケージの照合</td><td><b>外部ツール。intakelog は再実装しない</b></td></tr>
+    <tr><td>レポート</td><td>台帳と照合結果を 1 枚の HTML に合成</td><td>依存なし・self-contained</td></tr>
+  </tbody>
+</table>
+
+<h3>なぜ 2 経路あるのか</h3>
+<p>即時記録だけでは、<b>人が手で入れた分がまるごと落ちる</b>。しかも落ちたことに気づけないので、「台帳がある」と信じてしまうぶん、台帳が無い状態より危険になる。だからスナップショット差分を必ず併走させて、抜けを構造的に埋める。逆にスナップショットだけでは「なぜ入れたか」が永久に残らないので、両方要る。</p>
+
+<h2>3. 利用者の導入までの動線</h2>
+
+<div class="card">
+  <p style="margin:0"><b>前提</b>: <code>osv-scanner</code> が <code>PATH</code> に必要（レポートの照合で使う）。見つからない場合はインストール方法を案内して止まる。無い状態で「検出ゼロ」を返すことはしない。</p>
+</div>
+
+<ol class="steps">
+  <li>
+    <b>まず試す</b><br>
+    <code>npx intakelog scan</code> — 何もインストールせずに、手元の状態を 1 回読むだけ。書き込みは行わない。
+  </li>
+  <li>
+    <b>常用するなら入れる</b><br>
+    <code>npm i -g intakelog</code> — 繰り返し使うツールなので、常用はグローバル導入を推奨。
+  </li>
+  <li>
+    <b>台帳を作る</b><br>
+    <code>intakelog init</code> — 台帳ファイルの置き場を決め、現在の状態を「初回スナップショット」として書き込む。<br>
+    <span class="meta">この時点で、各パッケージ管理が自分で持っているインストール日時（例: scoop の更新時刻）から<b>過去の導入日時を復元できる範囲は復元する</b>。分からないものは空のままにする。</span>
+  </li>
+  <li>
+    <b>以後は取り込みのたびに記録する</b><br>
+    <code>intakelog add &lt;name&gt; --why "理由"</code> で明示的に、または <code>intakelog sync</code> で差分をまとめて。<br>
+    <span class="meta">AI エージェントに作業させている場合は、エージェント側のルールに「取り込んだら 1 行足す」を入れておくと理由まで残る。</span>
+  </li>
+  <li>
+    <b>状態を見る</b><br>
+    <code>intakelog report</code> — osv-scanner を呼んで照合し、単一 HTML を出力してパスを表示する。
+  </li>
+  <li>
+    <b>事案が起きた日に使う</b><br>
+    <code>intakelog since 2026-08-04T09:00Z</code> — 指定時刻以降に取り込んだものだけを一覧する。ここが本番。
+  </li>
+</ol>
+
+<h2>4. システムイメージ</h2>
+
+<h3>CLI の出力</h3>
+<p class="meta">下記は表示イメージ（合成データ）。実際の値ではない。</p>
+<pre><code>$ intakelog report
+
+==&gt; 台帳: 132 行（最終更新 2026-08-05 19:46）
+==&gt; 照合: osv-scanner 2.4.0 / オフライン DB（外部送信なし）
+    lockfile 58 本 ... 48 本を走査
+
+!! 走査できなかった: 10 本 — この範囲は未検査（異常なしではない）
+   ./services/api/go.sum        理由: Go は go.mod を渡すこと
+   ...
+
+  悪意あるパッケージ (MAL) : 0
+  CRITICAL                 : 2
+  未検査の lockfile        : 10
+
+→ ./intakelog-report.html</code></pre>
+
+<div class="card">
+  <p style="margin:0"><b>この出力で一番大事なのは「走査できなかった 10 本」の行。</b>ここを黙って捨てると、出力は「異常なし」に見えてしまう。実際、試作段階でこの取りこぼしを 3 回踏んだ（エコシステムごとの DB 未取得・Go のファイル名の取り違え・引数の渡し方の誤り）。いずれも「0 件」と「未検査」が画面上で見分けられない形で出ていた。</p>
+</div>
+
+<h3>レポート画面</h3>
+<div class="figwrap">
+<svg viewBox="0 0 1000 400" role="img" aria-label="レポート画面のワイヤーフレーム">
+  <g font-family="'Zen Maru Gothic',system-ui,sans-serif" fill="#241f1a" stroke="#241f1a" stroke-width="2">
+    <rect x="10" y="10" width="980" height="380" rx="14" fill="#fff"/>
+    <line x1="10" y1="66" x2="990" y2="66"/>
+    <g stroke="none"><text x="32" y="44" font-size="16" font-weight="700">サプライチェーン状態レポート</text>
+      <text x="700" y="44" font-size="12" fill="#837a6c">生成 2026-08-05 20:31</text></g>
+
+    <!-- warning band -->
+    <rect x="32" y="84" width="936" height="46" rx="10" fill="#fff5f4"/>
+    <g stroke="none"><text x="48" y="104" font-size="13" font-weight="700">未検査の範囲があります（異常なしではありません）</text>
+      <text x="48" y="122" font-size="11.5" fill="#837a6c">[未走査 lockfile の一覧 / 監視が無効なリポジトリの一覧]</text></g>
+
+    <!-- KPI -->
+    <g fill="#fffdf8">
+      <rect x="32"  y="148" width="176" height="70" rx="10"/>
+      <rect x="222" y="148" width="176" height="70" rx="10"/>
+      <rect x="412" y="148" width="176" height="70" rx="10"/>
+      <rect x="602" y="148" width="176" height="70" rx="10"/>
+      <rect x="792" y="148" width="176" height="70" rx="10"/>
+    </g>
+    <g stroke="none" text-anchor="middle" font-size="11.5" fill="#837a6c">
+      <text x="120" y="204">悪意あるパッケージ</text>
+      <text x="310" y="204">侵入痕跡</text>
+      <text x="500" y="204">CRITICAL</text>
+      <text x="690" y="204">未検査</text>
+      <text x="880" y="204">台帳の行数</text>
+    </g>
+    <g stroke="none" text-anchor="middle" font-size="22" font-weight="700" fill="#241f1a">
+      <text x="120" y="185">[n]</text><text x="310" y="185">[n]</text><text x="500" y="185">[n]</text>
+      <text x="690" y="185">[n]</text><text x="880" y="185">[n]</text>
+    </g>
+
+    <!-- table area -->
+    <rect x="32" y="238" width="600" height="134" rx="10" fill="#fffdf8"/>
+    <g stroke="none"><text x="48" y="260" font-size="12.5" font-weight="700">脆弱性一覧（絞り込み・並べ替え可）</text></g>
+    <g stroke="#241f1a" stroke-width="1" opacity="0.25">
+      <line x1="48" y1="272" x2="616" y2="272"/><line x1="48" y1="296" x2="616" y2="296"/>
+      <line x1="48" y1="320" x2="616" y2="320"/><line x1="48" y1="344" x2="616" y2="344"/>
+    </g>
+    <g stroke="none" font-size="11" fill="#837a6c">
+      <text x="48" y="288">[深刻度] [エコシステム] [パッケージ@版] [ID] [対象]</text>
+      <text x="48" y="312">[深刻度] [エコシステム] [パッケージ@版] [ID] [対象]</text>
+      <text x="48" y="336">[深刻度] [エコシステム] [パッケージ@版] [ID] [対象]</text>
+    </g>
+
+    <rect x="652" y="238" width="316" height="134" rx="10" fill="#fffdf8"/>
+    <g stroke="none"><text x="668" y="260" font-size="12.5" font-weight="700">取り込みタイムライン</text></g>
+    <g stroke="#241f1a" stroke-width="1" opacity="0.25"><line x1="676" y1="272" x2="676" y2="356"/></g>
+    <g stroke="none" font-size="11" fill="#837a6c">
+      <text x="690" y="290">[日時] [経路] [名前@版] [理由]</text>
+      <text x="690" y="314">[日時] [経路] [名前@版] [理由]</text>
+      <text x="690" y="338">[日時] [経路] [名前@版] [理由]</text>
+    </g>
+  </g>
+</svg>
+<figcaption>角括弧は実データが入る場所。未検査の警告帯を、件数カードより<b>上</b>に置くのが要点（数字だけ見て安心されないように）。</figcaption>
+</div>
+
+<h2>5. 台帳のかたち</h2>
+
+<pre><code>date,kind,name,version,source,integrity,project,why,actor</code></pre>
+
+<table>
+  <thead><tr><th>列</th><th>中身</th><th>取れないとき</th></tr></thead>
+  <tbody>
+    <tr><td><code>date</code></td><td>取り込んだ日時（タイムゾーン付き）</td><td><b>空にする。推測で埋めない</b></td></tr>
+    <tr><td><code>kind</code></td><td>経路（npm / scoop / winget / pip / cargo / go / git / shell …）</td><td>—</td></tr>
+    <tr><td><code>name</code> / <code>version</code></td><td>名前と版。git は短いコミット ID</td><td>—</td></tr>
+    <tr><td><code>source</code></td><td><b>実 URL</b>（レジストリ名だけで済ませない）</td><td>空</td></tr>
+    <tr><td><code>integrity</code></td><td>ハッシュ・コミット ID</td><td>空</td></tr>
+    <tr><td><code>project</code></td><td>入れた先。グローバルなら空</td><td>空</td></tr>
+    <tr><td><code>why</code></td><td>導入理由 1 行</td><td>差分検出のときは自動文言</td></tr>
+    <tr><td><code>actor</code></td><td>人か、どのエージェントか</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<p>形式を CSV にしたのは、<b>人が grep でき、git の差分がそのまま履歴として読める</b>から。データベースを持たない。</p>
+
+<h2>6. 設計原則</h2>
+
+<div class="two">
+  <div class="card">
+    <h3 style="margin-top:0">スキャナを自前実装しない</h3>
+    <p style="margin-bottom:0">照合は osv-scanner に委譲する。セキュリティツールの偽陰性は「異常なし」という誤った確信を作るので、無いより悪い。その責任は上流の専門ツールに置く。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">走査できなかったものを黙って捨てない</h3>
+    <p style="margin-bottom:0">未検査・取得失敗は必ず件数を出す。黙って捨てると出力が「異常なし」に化ける。試作で 3 回踏んだ失敗の共通点がこれ。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">append-only</h3>
+    <p style="margin-bottom:0">既存行を書き換えない・並べ替えない。訂正は新しい行を足して理由を書く。履歴が書き換わらないことが台帳の価値。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">推測で日時を埋めない</h3>
+    <p style="margin-bottom:0">取れない値は空にする。推定値を事実として記録するのが、このツールで最も害の大きい振る舞い。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">実行時依存ゼロ</h3>
+    <p style="margin-bottom:0">サプライチェーンを見る道具が、自分のサプライチェーンを抱えない。TypeScript の標準ライブラリだけで書く。</p>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">オフラインが既定</h3>
+    <p style="margin-bottom:0">照合はローカル DB で行う。非公開プロジェクトの依存構成を外部の API に送らない。オンライン照会は明示指定したときだけ。</p>
+  </div>
+</div>
+
+<h2>7. やらないこと</h2>
+<ul>
+  <li><b>自動修復</b>（勝手に消す・上げる・lockfile を書き換える）。観測と記録に徹する</li>
+  <li><b>常駐サーバー・SaaS・Web ダッシュボード</b>。出力はローカルの静的ファイル 1 枚</li>
+  <li><b>単体実行ファイルの配布</b>。Windows の警告を踏むだけで得がない</li>
+  <li><b>GUI</b>・多言語 UI・自動アップデート</li>
+</ul>
+
+<h2>8. 現在地とこれから</h2>
+<table>
+  <thead><tr><th>状態</th><th>内容</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-ok">完了</span></td><td>名前の調査（商標・レジストリ・ドメイン）と npm 名の予約</td></tr>
+    <tr><td><span class="tag tag-ok">完了</span></td><td>公開リポジトリの作成、ライセンス、秘匿情報スキャンの配線</td></tr>
+    <tr><td><span class="tag tag-accent">次</span></td><td>台帳フォーマットの確定と、収集部（各パッケージ管理の読み取り）の実装</td></tr>
+    <tr><td><span class="tag">未着手</span></td><td>レポート生成、CI、クロスプラットフォーム検証、初回リリース</td></tr>
+  </tbody>
+</table>
+
+<h2>9. 確認したいこと</h2>
+<p>この構成で進めてよいか、下記に答えて「まとめて出力」を押すとそのまま貼れる形になる。</p>
+
+<form id="qf">
+<fieldset>
+  <legend>Q1 スキャナを osv-scanner に委譲する方針</legend>
+  <label><input type="radio" name="q1" value="このままでよい"> このままでよい（自前実装しない）</label>
+  <label><input type="radio" name="q1" value="将来は自前も持ちたい"> 将来は自前照合も持ちたい</label>
+  <label><input type="radio" name="q1" value="別案あり"> 別案がある（下に記述）</label>
+  <textarea name="q1note" rows="2" placeholder="補足（任意）"></textarea>
+</fieldset>
+
+<fieldset>
+  <legend>Q2 台帳の形式</legend>
+  <label><input type="radio" name="q2" value="CSV でよい"> CSV でよい（grep でき、git 差分が読める）</label>
+  <label><input type="radio" name="q2" value="JSONL がよい"> JSONL のほうがよい（構造化を優先）</label>
+  <label><input type="radio" name="q2" value="別案あり"> 別案がある（下に記述）</label>
+  <textarea name="q2note" rows="2" placeholder="補足（任意）"></textarea>
+</fieldset>
+
+<fieldset>
+  <legend>Q3 次に着手する範囲</legend>
+  <label><input type="radio" name="q3" value="収集部から"> 収集部（各パッケージ管理の読み取り）から</label>
+  <label><input type="radio" name="q3" value="台帳フォーマット確定から"> 台帳フォーマットの確定から</label>
+  <label><input type="radio" name="q3" value="レポートから"> レポート生成から</label>
+  <textarea name="q3note" rows="2" placeholder="補足（任意）"></textarea>
+</fieldset>
+
+<fieldset>
+  <legend>Q4 その他（構成図・動線で違和感のある点）</legend>
+  <textarea name="q4" rows="3" placeholder="自由記述"></textarea>
+</fieldset>
+</form>
+
+<div class="qbar">
+  <button type="button" id="gen">回答をまとめて出力</button>
+  <button type="button" class="ghost" id="cp">クリップボードにコピー</button>
+</div>
+<div id="out">（まだ出力していません）</div>
+
+<script>
+(function(){
+  var Q = [
+    {k:'q1', t:'スキャナを osv-scanner に委譲する方針', n:'q1note'},
+    {k:'q2', t:'台帳の形式', n:'q2note'},
+    {k:'q3', t:'次に着手する範囲', n:'q3note'}
+  ];
+  var out = document.getElementById('out');
+  function build(){
+    var f = document.getElementById('qf'), lines = ['intakelog 構成レビュー 回答 (2026-08-05)', ''];
+    Q.forEach(function(q, i){
+      var sel = f.querySelector('input[name="' + q.k + '"]:checked');
+      var note = (f.elements[q.n].value || '').trim();
+      lines.push('[Q' + (i+1) + '] ' + q.t);
+      lines.push('回答: ' + (sel ? sel.value : '(未選択)'));
+      if (note) lines.push('補足: ' + note);
+      lines.push('');
+    });
+    var free = (f.elements['q4'].value || '').trim();
+    lines.push('[Q4] その他');
+    lines.push(free || '(なし)');
+    return lines.join('\n');
+  }
+  document.getElementById('gen').onclick = function(){ out.textContent = build(); };
+  document.getElementById('cp').onclick = function(){
+    var t = out.textContent.indexOf('まだ出力') >= 0 ? build() : out.textContent;
+    out.textContent = t;
+    navigator.clipboard.writeText(t).then(function(){
+      var b = document.getElementById('cp'), o = b.textContent;
+      b.textContent = 'コピーしました'; setTimeout(function(){ b.textContent = o; }, 1600);
+    });
+  };
+})();
+</script>
+
+</div></body></html>
