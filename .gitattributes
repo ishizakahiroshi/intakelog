@@ -1,0 +1,16 @@
+# リポジトリ内とチェックアウト時の改行を LF に正規化する。
+# シェルスクリプトと git hook は CRLF になると `\r: command not found` で壊れるため、
+# Windows で clone しても LF のままにする必要がある。
+* text=auto eol=lf
+
+# PowerShell / cmd は Windows ネイティブなので CRLF を保つ
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
