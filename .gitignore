@@ -71,3 +71,6 @@ coverage/
 
 # === secrets-scan exception ===
 !scripts/secrets-scan.mjs
+
+# Local video production files
+/brag-output/
